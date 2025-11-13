@@ -9,6 +9,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
 import { Loader2 } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { isEmbedded } from '@/lib/utils'
 
 const LogIn = () => {
     const { theme, systemTheme } = useTheme()
@@ -131,13 +133,17 @@ const LogIn = () => {
                     </div>
 
                     <div className="space-y-2">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="w-full"
-                            onClick={() => handleOAuthLogin('google')}
-                            disabled={loading}
-                        >
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            className="w-full"
+                                            onClick={() => handleOAuthLogin('google')}
+                                            disabled={loading || isEmbedded}
+                                        >
                             <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                                 <path
                                     fill="currentColor"
@@ -157,14 +163,28 @@ const LogIn = () => {
                                 />
                             </svg>
                             Continue with Google
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="w-full"
-                            onClick={() => handleOAuthLogin('azure')}
-                            disabled={loading}
-                        >
+                                        </Button>
+                                    </div>
+                                </TooltipTrigger>
+                                {isEmbedded && (
+                                    <TooltipContent>
+                                        <p>Social login is not available in embedded mode.</p>
+                                        <p>Please open this page in a new window to use social login.</p>
+                                    </TooltipContent>
+                                )}
+                            </Tooltip>
+                        </TooltipProvider>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            className="w-full"
+                                            onClick={() => handleOAuthLogin('azure')}
+                                            disabled={loading || isEmbedded}
+                                        >
                             <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                                 <path
                                     fill="currentColor"
@@ -172,7 +192,17 @@ const LogIn = () => {
                                 />
                             </svg>
                             Continue with Microsoft
-                        </Button>
+                                        </Button>
+                                    </div>
+                                </TooltipTrigger>
+                                {isEmbedded && (
+                                    <TooltipContent>
+                                        <p>Social login is not available in embedded mode.</p>
+                                        <p>Please open this page in a new window to use social login.</p>
+                                    </TooltipContent>
+                                )}
+                            </Tooltip>
+                        </TooltipProvider>
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-center">

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iframe Test - Timbal Blueprint</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .iframe-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+            height: 800px;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            color: #1565c0;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+        button {
+            background: #1976d2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #1565c0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Iframe Embedding Test</h1>
+        
+        <div class="info">
+            <strong>Testing embedded mode:</strong> Your app is loaded in the iframe below. 
+            Social login buttons should be disabled with tooltips.
+        </div>
+
+        <div class="controls">
+            <button onclick="sendSessionData()">Send Mock Session Data</button>
+            <button onclick="openInNewWindow()">Open in New Window</button>
+        </div>
+
+        <div class="iframe-container">
+            <iframe 
+                id="embedded-app"
+                src="http://localhost:3737"
+                allow="clipboard-read; clipboard-write"
+            ></iframe>
+        </div>
+    </div>
+
+    <script>
+        const iframe = document.getElementById('embedded-app');
+
+        // Listen for messages from the iframe
+        window.addEventListener('message', (event) => {
+            console.log('Message from iframe:', event.data);
+            
+            if (event.data.type === 'REQUEST_SESSION') {
+                console.log('Iframe requested session, sending mock data...');
+                sendSessionData();
+            }
+        });
+
+        // Send mock session data to iframe
+        function sendSessionData() {
+            iframe.contentWindow.postMessage({
+                type: 'EXTERNAL_SESSION',
+                session: {
+                    userId: 'test-user-123',
+                    email: 'test@example.com',
+                    token: 'mock-token-xyz789',
+                    metadata: {
+                        organizationId: 'org-456',
+                        role: 'admin',
+                        plan: 'enterprise'
+                    }
+                }
+            }, '*');
+            console.log('✅ Mock session data sent to iframe');
+        }
+
+        // Open the app in a new window (for testing standalone mode)
+        function openInNewWindow() {
+            window.open('http://localhost:3737', '_blank');
+        }
+
+        // Wait for iframe to load, then send session
+        iframe.addEventListener('load', () => {
+            console.log('Iframe loaded');
+            setTimeout(() => {
+                sendSessionData();
+            }, 500);
+        });
+    </script>
+</body>
+</html>
