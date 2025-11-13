@@ -2,9 +2,9 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useTitle } from '@/hooks/use-title'
 import { ThemeProvider } from 'next-themes'
 import { Toaster } from "@/components/ui/sonner"
-import { AuthGuard } from '@/auth/utils/AuthGuard'
-import { SessionProvider } from '@/auth/context/SessionContext'
-import { enableAuth } from '@/utils/miscelanea'
+import { AuthGuard } from '@/auth/AuthGuard'
+import { SessionProvider } from '@/auth/SessionContext'
+import { enableAuth } from '@/lib/utils'
 
 import Home from '@/pages/Home'
 import NotFound from '@/pages/NotFound'

@@ -1,8 +1,8 @@
 import { Routes, Route } from 'react-router-dom'
-import LogIn from '@/auth/pages/LogIn'
-import SignUp from '@/auth/pages/SignUp'
-import ForgotPassword from '@/auth/pages/ForgotPassword'
-import ResetPassword from '@/auth/pages/ResetPassword'
+import LogIn from './pages/LogIn'
+import SignUp from './pages/SignUp'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import NotFound from '@/pages/NotFound'
 
 const AuthRoutes = () => {

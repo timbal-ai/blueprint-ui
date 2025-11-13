@@ -1,1 +1,0 @@
-export const enableAuth = import.meta.env.VITE_APP_ENABLE_AUTH === "true";

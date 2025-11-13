@@ -1,6 +1,6 @@
 import React from "react";
 import { Navigate } from "react-router";
-import { useSession } from "@/auth/context/SessionContext";
+import { useSession } from "./SessionContext";
 import { Loader2 } from "lucide-react";
 
 interface AuthGuardProps {

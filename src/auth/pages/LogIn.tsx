@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTheme } from 'next-themes'
-import { supabase } from '@/lib/supabase'
+import { authClient } from '../client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -27,7 +27,7 @@ const LogIn = () => {
         setLoading(true)
 
         try {
-            const { error } = await supabase.auth.signInWithPassword({
+            const { error } = await authClient.auth.signInWithPassword({
                 email,
                 password,
             })
@@ -46,7 +46,7 @@ const LogIn = () => {
         setLoading(true)
 
         try {
-            const { error } = await supabase.auth.signInWithOAuth({
+            const { error } = await authClient.auth.signInWithOAuth({
                 provider,
                 options: {
                     redirectTo: window.location.origin,

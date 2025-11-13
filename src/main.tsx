@@ -2,9 +2,8 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 
 import './index.css'
-import './lib/supabase'
-
 import App from './App.tsx'
+import './auth/client'
 
 window.addEventListener('message', (event) => {
   if (event.data && event.data.action === 'navigate') {

@@ -1,8 +1,8 @@
 import { ModeToggle } from "@/components/mode-toggle"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
-import { supabase } from "@/lib/supabase"
-import { enableAuth } from "@/utils/miscelanea"
+import { authClient } from "@/auth/client"
+import { enableAuth } from "@/lib/utils"
 import { useTheme } from "next-themes"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Book, ChevronRight, Code } from "lucide-react"
@@ -15,7 +15,7 @@ const Home = () => {
         <img src={theme === "dark" ? "/timbal_w.svg" : "/timbal_b.svg"} alt="Timbal" className="h-5 w-auto" />
         <div className="flex items-center gap-2">
           <ModeToggle />
-          {enableAuth && <Button variant="destructive" onClick={() => supabase.auth.signOut()}>Logout</Button>}
+          {enableAuth && <Button variant="destructive" onClick={() => authClient.auth.signOut()}>Logout</Button>}
         </div>
       </div>
       <div className="flex flex-col items-center justify-center gap-4 flex-1 max-w-2xl mx-auto w-full px-4">
