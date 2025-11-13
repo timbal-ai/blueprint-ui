@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
 import { useTheme } from 'next-themes'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
@@ -12,7 +11,6 @@ import { Separator } from '@/components/ui/separator'
 import { Loader2 } from 'lucide-react'
 
 const LogIn = () => {
-    const { t } = useTranslation()
     const { theme, systemTheme } = useTheme()
     const navigate = useNavigate()
     const [email, setEmail] = useState('')
@@ -37,7 +35,7 @@ const LogIn = () => {
             if (error) throw error
             navigate('/')
         } catch (err: any) {
-            setError(err.message || t('auth.login.error'))
+            setError(err.message || 'Invalid email or password')
         } finally {
             setLoading(false)
         }
@@ -57,7 +55,7 @@ const LogIn = () => {
 
             if (error) throw error
         } catch (err: any) {
-            setError(err.message || t('auth.login.error'))
+            setError(err.message || 'Invalid email or password')
             setLoading(false)
         }
     }
@@ -71,8 +69,8 @@ const LogIn = () => {
                 <CardHeader className="space-y-4">
 
                     <div className="space-y-2 text-center">
-                        <CardTitle className="text-2xl font-bold">{t('auth.login.title')}</CardTitle>
-                        <CardDescription>{t('auth.login.subtitle')}</CardDescription>
+                        <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
+                        <CardDescription>Sign in to your account to continue</CardDescription>
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -84,7 +82,7 @@ const LogIn = () => {
 
                     <form onSubmit={handleEmailLogin} className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="email">{t('auth.login.email')}</Label>
+                            <Label htmlFor="email">Email</Label>
                             <Input
                                 id="email"
                                 type="email"
@@ -96,7 +94,7 @@ const LogIn = () => {
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="password">{t('auth.login.password')}</Label>
+                            <Label htmlFor="password">Password</Label>
                             <Input
                                 id="password"
                                 type="password"
@@ -112,12 +110,12 @@ const LogIn = () => {
                                 to="/auth/forgot-password"
                                 className="text-sm text-primary hover:underline"
                             >
-                                {t('auth.login.forgotPassword')}
+                                Forgot password?
                             </Link>
                         </div>
                         <Button type="submit" className="w-full" disabled={loading}>
                             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {t('auth.login.button')}
+                            Sign in
                         </Button>
                     </form>
 
@@ -127,7 +125,7 @@ const LogIn = () => {
                         </div>
                         <div className="relative flex justify-center text-xs uppercase">
                             <span className="bg-card px-2 text-muted-foreground">
-                                {t('auth.login.orContinueWith')}
+                                Or continue with
                             </span>
                         </div>
                     </div>
@@ -158,7 +156,7 @@ const LogIn = () => {
                                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                                 />
                             </svg>
-                            {t('auth.login.google')}
+                            Continue with Google
                         </Button>
                         <Button
                             type="button"
@@ -173,15 +171,15 @@ const LogIn = () => {
                                     d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zm12.6 0H12.6V0H24v11.4z"
                                 />
                             </svg>
-                            {t('auth.login.microsoft')}
+                            Continue with Microsoft
                         </Button>
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-center">
                     <p className="text-sm text-muted-foreground">
-                        {t('auth.login.noAccount')}{' '}
+                        Don't have an account?{' '}
                         <Link to="/auth/signup" className="text-primary hover:underline font-medium">
-                            {t('auth.login.signUp')}
+                            Sign up
                         </Link>
                     </p>
                 </CardFooter>
