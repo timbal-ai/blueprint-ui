@@ -69,6 +69,9 @@ export const authConfig = {
     url: import.meta.env.VITE_AUTH_URL,
     key: import.meta.env.VITE_AUTH_KEY,
     
+    // Timbal IAM configuration
+    timbalIAM: import.meta.env.VITE_AUTH_TIMBAL_IAM === 'true',
+    
     // OAuth providers from parsed methods
     oauthProviders: parsedMethods.oauthProviders,
     
