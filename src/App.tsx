@@ -3,8 +3,7 @@ import { useTitle } from '@/hooks/use-title'
 import { ThemeProvider } from 'next-themes'
 import { Toaster } from "@/components/ui/sonner"
 import { AuthGuard } from '@/auth/AuthGuard'
-import { SessionProvider } from '@/auth/SessionContext'
-import { enableAuth } from '@/lib/utils'
+import { SessionProvider, isAuthEnabled } from '@/auth/provider'
 
 import Home from '@/pages/Home'
 import NotFound from '@/pages/NotFound'
@@ -25,7 +24,7 @@ function App() {
             <Route path="*" element={<NotFound />} />
             {/* AUTH routes are only shown if authentication is enabled */}
             <Route path="/auth/*" element={<AuthGuard>
-              {enableAuth ? <AuthRoutes /> : <Navigate to="/" />}
+              {isAuthEnabled ? <AuthRoutes /> : <Navigate to="/" />}
             </AuthGuard>} />
           </Routes>
         </BrowserRouter>

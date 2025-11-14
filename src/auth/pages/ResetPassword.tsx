@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTheme } from 'next-themes'
-import { authClient } from '../client'
+import { useAuth } from '../provider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,6 +12,7 @@ import { CheckCircle2, Loader2 } from 'lucide-react'
 const ResetPassword = () => {
     const { theme, systemTheme } = useTheme()
     const navigate = useNavigate()
+    const auth = useAuth()
     const [password, setPassword] = useState('')
     const [confirmPassword, setConfirmPassword] = useState('')
     const [loading, setLoading] = useState(false)
@@ -20,6 +21,13 @@ const ResetPassword = () => {
 
     const currentTheme = theme === 'system' ? systemTheme : theme
     const logo = currentTheme === 'dark' ? '/timbal_w.svg' : '/timbal_b.svg'
+
+    // Redirect if email/password auth is disabled
+    useEffect(() => {
+        if (!auth.config.methods.emailPassword) {
+            navigate('/auth/login')
+        }
+    }, [auth.config.methods.emailPassword, navigate])
 
     const handleResetPassword = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -34,9 +42,7 @@ const ResetPassword = () => {
         setLoading(true)
 
         try {
-            const { error } = await authClient.auth.updateUser({
-                password: password
-            })
+            const { error } = await auth.updatePassword(password)
 
             if (error) throw error
 

@@ -18,12 +18,6 @@ export function cn(...inputs: ClassValue[]) {
 // ============================================
 
 /**
- * Feature flag to enable/disable authentication
- * Set via VITE_APP_ENABLE_AUTH environment variable
- */
-export const enableAuth = import.meta.env.VITE_APP_ENABLE_AUTH === "true"
-
-/**
  * Detects if the application is running inside an iframe
  * Returns true when embedded in another application
  */
