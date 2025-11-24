@@ -1,12 +1,9 @@
 import { authConfig } from "@/auth/config";
 import { sleep } from "@/lib/utils";
-import {
-  TimbalConfig,
-  TimbalApiResponse,
-  QueryParams,
-  QueryResult,
-} from "./types";
+import { TimbalConfig, TimbalApiResponse } from "./config";
+import { QueryParams, QueryResult, RunParams } from "./params";
 import { TimbalApiError } from "./errors";
+import { TimbalEvent, OutputEvent, parseEvent } from "./events";
 
 export class Timbal {
   config: TimbalConfig;
@@ -14,6 +11,7 @@ export class Timbal {
   constructor(config: TimbalConfig = {}) {
     const apiKey = config.apiKey ?? import.meta.env.VITE_TIMBAL_API_KEY;
     const baseUrl = config.baseUrl ?? import.meta.env.VITE_TIMBAL_BASE_URL;
+    const fsPort = config.fsPort ?? import.meta.env.VITE_TIMBAL_FS_PORT;
 
     // Validate that either timbalIAM is enabled or apiKey is provided
     if (!authConfig.timbalIAM && !apiKey) {
@@ -31,6 +29,7 @@ export class Timbal {
       ...config,
       apiKey,
       baseUrl,
+      fsPort,
       defaultHeaders: config.defaultHeaders ?? {},
     };
   }
@@ -44,9 +43,14 @@ export class Timbal {
   }
 
   private buildUrl(endpoint: string): string {
-    const baseUrl = this.config.baseUrl.endsWith("/")
-      ? this.config.baseUrl.slice(0, -1)
-      : this.config.baseUrl;
+    let baseUrl: string;
+    if (this.config.fsPort) {
+      baseUrl = `http://localhost:${this.config.fsPort}`;
+    } else {
+      baseUrl = this.config.baseUrl.endsWith("/")
+        ? this.config.baseUrl.slice(0, -1)
+        : this.config.baseUrl;
+    }
     const path = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
     return `${baseUrl}${path}`;
   }
@@ -228,6 +232,129 @@ export class Timbal {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sql: params.sql }),
     });
+  }
+
+  async run(params: RunParams): Promise<TimbalApiResponse<OutputEvent>> {
+    const orgId = params.orgId ?? import.meta.env.VITE_TIMBAL_ORG_ID;
+
+    if (!orgId) {
+      throw new Error("orgId is required for run");
+    }
+
+    // TODO We need to generate the context in here
+
+    return this.request<OutputEvent>(
+      `/orgs/${orgId}/apps/${params.appId}/runs/collect`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          versionId: params.versionId ?? null,
+          input: params.input,
+        }),
+      },
+    );
+  }
+
+  /**
+   * Stream events from a run execution
+   * Parses Server-Sent Events (SSE) or newline-delimited JSON events
+   *
+   * @example
+   * ```ts
+   * for await (const event of timbal.streamRun({ appId: 'my-app', input: { query: 'hello' } })) {
+   *   if (event.type === 'START') {
+   *     console.log('Step started:', event.status_text);
+   *   } else if (event.type === 'OUTPUT') {
+   *     console.log('Step completed:', event.output);
+   *   }
+   * }
+   * ```
+   */
+  async *streamRun(
+    params: RunParams,
+  ): AsyncGenerator<TimbalEvent, void, unknown> {
+    const orgId = params.orgId ?? import.meta.env.VITE_TIMBAL_ORG_ID;
+
+    if (!orgId) {
+      throw new Error("orgId is required for run");
+    }
+
+    // TODO Generate the context from here
+
+    const endpoint = `/orgs/${orgId}/apps/${params.appId}/runs/stream`;
+    const options: RequestInit = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        versionId: params.versionId ?? null,
+        input: params.input,
+      }),
+    };
+
+    let buffer = "";
+
+    // Use the existing stream() method and parse events from chunks
+    for await (const chunk of this.stream(endpoint, options)) {
+      // Append new data to buffer
+      buffer += chunk;
+
+      // Process complete lines
+      const lines = buffer.split("\n");
+      // Keep the last incomplete line in the buffer
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+
+        // Skip SSE comments and metadata fields (lines starting with :, id:, event:, retry:)
+        if (
+          trimmed.startsWith(":") ||
+          trimmed.startsWith("id:") ||
+          trimmed.startsWith("event:") ||
+          trimmed.startsWith("retry:")
+        ) {
+          continue;
+        }
+
+        // Handle SSE format (data: {...})
+        if (trimmed.startsWith("data: ")) {
+          const jsonData = trimmed.substring(6).trim(); // Remove "data: " prefix
+          if (!jsonData || jsonData === "[DONE]") continue; // Skip empty or done marker
+
+          try {
+            const event = parseEvent(jsonData);
+            yield event;
+          } catch (error) {
+            console.warn("Failed to parse SSE event:", error, "Raw:", jsonData);
+          }
+        } else {
+          // Handle plain newline-delimited JSON - must start with {
+          if (!trimmed.startsWith("{")) {
+            // Skip non-JSON lines
+            continue;
+          }
+
+          try {
+            const event = parseEvent(trimmed);
+            yield event;
+          } catch (error) {
+            console.warn("Failed to parse event:", error, "Raw:", trimmed);
+          }
+        }
+      }
+    }
+
+    // Process any remaining data in buffer
+    if (buffer.trim()) {
+      try {
+        const event = parseEvent(buffer.trim());
+        yield event;
+      } catch (error) {
+        console.warn("Failed to parse final event:", error, buffer);
+      }
+    }
   }
 }
 
