@@ -42,10 +42,12 @@ export class Timbal {
     this.config.sessionToken = token;
   }
 
-  private buildUrl(endpoint: string): string {
+  private buildUrl(endpoint: string, baseUrlOverride?: string): string {
     let baseUrl: string;
-    if (this.config.fsPort) {
-      baseUrl = `http://localhost:${this.config.fsPort}`;
+    if (baseUrlOverride) {
+      baseUrl = baseUrlOverride.endsWith("/")
+        ? baseUrlOverride.slice(0, -1)
+        : baseUrlOverride;
     } else {
       baseUrl = this.config.baseUrl.endsWith("/")
         ? this.config.baseUrl.slice(0, -1)
@@ -87,8 +89,9 @@ export class Timbal {
   private async _fetch(
     endpoint: string,
     options: RequestInit = {},
+    baseUrlOverride?: string,
   ): Promise<Response> {
-    const url = this.buildUrl(endpoint);
+    const url = this.buildUrl(endpoint, baseUrlOverride);
     const headers = this.buildHeaders(options);
     const requestOptions: RequestInit = { ...options, headers };
 
@@ -141,6 +144,7 @@ export class Timbal {
     endpoint: string,
     options: RequestInit = {},
     retryCount = 0,
+    baseUrlOverride?: string,
   ): Promise<TimbalApiResponse<T>> {
     // Set default Content-Type for JSON if body is present and no Content-Type is set
     if (options.body && typeof options.body === "string") {
@@ -151,7 +155,7 @@ export class Timbal {
       }
     }
     try {
-      const response = await this._fetch(endpoint, options);
+      const response = await this._fetch(endpoint, options, baseUrlOverride);
       const data = (await response.json()) as T;
       return {
         data,
@@ -168,7 +172,12 @@ export class Timbal {
 
         if (shouldRetry) {
           await sleep(this.config.retryDelay * (retryCount + 1));
-          return this.request<T>(endpoint, options, retryCount + 1);
+          return this.request<T>(
+            endpoint,
+            options,
+            retryCount + 1,
+            baseUrlOverride,
+          );
         }
       }
       throw error;
@@ -179,9 +188,10 @@ export class Timbal {
     endpoint: string,
     options: RequestInit = {},
     retryCount = 0,
+    baseUrlOverride?: string,
   ): AsyncGenerator<string, void, unknown> {
     try {
-      const response = await this._fetch(endpoint, options);
+      const response = await this._fetch(endpoint, options, baseUrlOverride);
       if (!response.body) {
         throw new TimbalApiError(
           "Response body is null",
@@ -211,7 +221,12 @@ export class Timbal {
 
         if (shouldRetry) {
           await sleep(this.config.retryDelay * (retryCount + 1));
-          yield* this.stream(endpoint, options, retryCount + 1);
+          yield* this.stream(
+            endpoint,
+            options,
+            retryCount + 1,
+            baseUrlOverride,
+          );
           return;
         }
       }
@@ -241,6 +256,11 @@ export class Timbal {
       throw new Error("orgId is required for run");
     }
 
+    let baseUrlOverride: string | undefined;
+    if (this.config.fsPort) {
+      baseUrlOverride = `http://localhost:${this.config.fsPort}`;
+    }
+
     // TODO We need to generate the context in here
 
     return this.request<OutputEvent>(
@@ -253,6 +273,8 @@ export class Timbal {
           input: params.input,
         }),
       },
+      0,
+      baseUrlOverride,
     );
   }
 
@@ -280,6 +302,11 @@ export class Timbal {
       throw new Error("orgId is required for run");
     }
 
+    let baseUrlOverride: string | undefined;
+    if (this.config.fsPort) {
+      baseUrlOverride = `http://localhost:${this.config.fsPort}`;
+    }
+
     // TODO Generate the context from here
 
     const endpoint = `/orgs/${orgId}/apps/${params.appId}/runs/stream`;
@@ -295,7 +322,12 @@ export class Timbal {
     let buffer = "";
 
     // Use the existing stream() method and parse events from chunks
-    for await (const chunk of this.stream(endpoint, options)) {
+    for await (const chunk of this.stream(
+      endpoint,
+      options,
+      0,
+      baseUrlOverride,
+    )) {
       // Append new data to buffer
       buffer += chunk;
 
