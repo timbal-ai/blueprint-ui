@@ -1,7 +1,7 @@
 import { authConfig } from "@/auth/config";
 import { sleep } from "@/lib/utils";
 import { TimbalConfig, TimbalApiResponse } from "./config";
-import { QueryParams, QueryResult, RunParams } from "./params";
+import { QueryParams, QueryResult, RunParams, UploadParams, UploadResult } from "./params";
 import { TimbalApiError } from "./errors";
 import { TimbalEvent, OutputEvent, parseEvent } from "./events";
 
@@ -276,6 +276,79 @@ export class Timbal {
       0,
       baseUrlOverride,
     );
+  }
+
+  /**
+   * Upload a file to an organization
+   *
+   * @example
+   * ```ts
+   * // Upload from a File input
+   * const fileInput = document.querySelector('input[type="file"]');
+   * const file = fileInput.files[0];
+   * const result = await timbal.upload({ file });
+   * console.log('Uploaded:', result.data.url);
+   *
+   * // Upload with custom name
+   * const result = await timbal.upload({ file: myBlob, name: 'custom-image.png' });
+   * ```
+   */
+  async upload(params: UploadParams): Promise<TimbalApiResponse<UploadResult>> {
+    const orgId = params.orgId ?? import.meta.env.VITE_TIMBAL_ORG_ID;
+
+    if (!orgId) {
+      throw new Error("orgId is required for upload");
+    }
+
+    const formData = new FormData();
+
+    if (params.name && params.file instanceof Blob) {
+      formData.append("file", params.file, params.name);
+    } else {
+      formData.append("file", params.file);
+    }
+
+    return this.requestFormData<UploadResult>(
+      `/orgs/${orgId}/files`,
+      formData,
+    );
+  }
+
+  /**
+   * Make a request with FormData (multipart/form-data)
+   * Note: Content-Type header is intentionally not set to let the browser handle it
+   */
+  private async requestFormData<T>(
+    endpoint: string,
+    formData: FormData,
+    retryCount = 0,
+  ): Promise<TimbalApiResponse<T>> {
+    try {
+      const response = await this._fetch(endpoint, {
+        method: "POST",
+        body: formData,
+      });
+      const data = (await response.json()) as T;
+      return {
+        data,
+        success: true,
+        statusCode: response.status,
+      };
+    } catch (error) {
+      if (error instanceof TimbalApiError) {
+        const shouldRetry =
+          (error.code === "TIMEOUT_ERROR" ||
+            error.code === "NETWORK_ERROR" ||
+            error.statusCode >= 500) &&
+          retryCount < this.config.retryAttempts;
+
+        if (shouldRetry) {
+          await sleep(this.config.retryDelay * (retryCount + 1));
+          return this.requestFormData<T>(endpoint, formData, retryCount + 1);
+        }
+      }
+      throw error;
+    }
   }
 
   /**
