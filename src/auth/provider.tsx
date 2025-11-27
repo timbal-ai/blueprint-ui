@@ -76,6 +76,10 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
     if (!isAuthEnabled) {
       setSession(null);
       setLoading(false);
+      // Mark timbal as ready even without auth
+      import("@/timbal/client").then(({ timbal }) => {
+        timbal.updateSessionToken(undefined);
+      });
       return;
     }
 
@@ -83,6 +87,10 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
     if (!authClient) {
       setSession(null);
       setLoading(false);
+      // Mark timbal as ready even without auth
+      import("@/timbal/client").then(({ timbal }) => {
+        timbal.updateSessionToken(undefined);
+      });
       return;
     }
 

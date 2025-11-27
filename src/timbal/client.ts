@@ -1,14 +1,27 @@
 import { authConfig } from "@/auth/config";
 import { sleep } from "@/lib/utils";
 import { TimbalConfig, TimbalApiResponse } from "./config";
-import { QueryParams, QueryResult, RunParams, UploadParams, UploadResult } from "./params";
+import {
+  QueryParams,
+  QueryResult,
+  RunParams,
+  UploadParams,
+  UploadResult,
+} from "./params";
 import { TimbalApiError } from "./errors";
 import { TimbalEvent, OutputEvent, parseEvent } from "./events";
 
 export class Timbal {
   config: TimbalConfig;
+  private _ready: Promise<void>;
+  private _resolveReady!: () => void;
+  private _isReady: boolean = false;
 
   constructor(config: TimbalConfig = {}) {
+    // Create the ready promise that will be resolved when auth is synced
+    this._ready = new Promise<void>((resolve) => {
+      this._resolveReady = resolve;
+    });
     const apiKey = config.apiKey ?? import.meta.env.VITE_TIMBAL_API_KEY;
     const baseUrl = config.baseUrl ?? import.meta.env.VITE_TIMBAL_BASE_URL;
     const fsPort = config.fsPort ?? import.meta.env.VITE_TIMBAL_FS_PORT;
@@ -40,6 +53,11 @@ export class Timbal {
    */
   updateSessionToken(token: string | undefined) {
     this.config.sessionToken = token;
+    // Mark as ready once the token has been synced (even if undefined - means auth checked)
+    if (!this._isReady) {
+      this._isReady = true;
+      this._resolveReady();
+    }
   }
 
   private buildUrl(endpoint: string, baseUrlOverride?: string): string {
@@ -91,6 +109,9 @@ export class Timbal {
     options: RequestInit = {},
     baseUrlOverride?: string,
   ): Promise<Response> {
+    // Wait for auth to be ready before making any request
+    await this._ready;
+
     const url = this.buildUrl(endpoint, baseUrlOverride);
     const headers = this.buildHeaders(options);
     const requestOptions: RequestInit = { ...options, headers };
@@ -308,10 +329,7 @@ export class Timbal {
       formData.append("file", params.file);
     }
 
-    return this.requestFormData<UploadResult>(
-      `/orgs/${orgId}/files`,
-      formData,
-    );
+    return this.requestFormData<UploadResult>(`/orgs/${orgId}/files`, formData);
   }
 
   /**
