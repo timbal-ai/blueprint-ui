@@ -46,6 +46,19 @@ export interface TimbalConfig {
 }
 
 /**
+ * User session information
+ */
+export interface TimbalSession {
+  user_id: number;
+  user_email: string;
+  user_name: string;
+  user_lang: string;
+  user_phone: string | null;
+  user_photo_url: string | null;
+  access_level: string;
+}
+
+/**
  * Standard API response wrapper
  */
 export interface TimbalApiResponse<T = any> {

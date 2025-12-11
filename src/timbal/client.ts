@@ -1,6 +1,6 @@
 import { authConfig } from "@/auth/config";
 import { sleep } from "@/lib/utils";
-import { TimbalConfig, TimbalApiResponse } from "./config";
+import { TimbalConfig, TimbalApiResponse, TimbalSession } from "./types";
 import {
   QueryParams,
   QueryResult,
@@ -16,6 +16,7 @@ export class Timbal {
   private _ready: Promise<void>;
   private _resolveReady!: () => void;
   private _isReady: boolean = false;
+  private _session: TimbalSession | null = null;
 
   constructor(config: TimbalConfig = {}) {
     // Create the ready promise that will be resolved when auth is synced
@@ -53,6 +54,8 @@ export class Timbal {
    */
   updateSessionToken(token: string | undefined) {
     this.config.sessionToken = token;
+    // Clear cached session when token changes
+    this._session = null;
     // Mark as ready once the token has been synced (even if undefined - means auth checked)
     if (!this._isReady) {
       this._isReady = true;
@@ -297,6 +300,29 @@ export class Timbal {
       0,
       baseUrlOverride,
     );
+  }
+
+  /**
+   * Get the current user's session
+   * Returns cached data if available, otherwise fetches from GET /me
+   *
+   * @param forceRefresh - If true, fetches fresh data even if cached
+   *
+   * @example
+   * ```ts
+   * const session = await timbal.getSession();
+   * console.log('Current user:', session.user_email);
+   * ```
+   */
+  async getSession(forceRefresh = false): Promise<TimbalSession> {
+    if (this._session && !forceRefresh) {
+      return this._session;
+    }
+    const response = await this.request<{ session: TimbalSession }>("/me", {
+      method: "GET",
+    });
+    this._session = response.data.session;
+    return this._session;
   }
 
   /**
