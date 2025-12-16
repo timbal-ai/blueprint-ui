@@ -17,6 +17,7 @@ export class Timbal {
   private _resolveReady!: () => void;
   private _isReady: boolean = false;
   private _session: TimbalSession | null = null;
+  private _sessionPromise: Promise<TimbalSession> | null = null;
 
   constructor(config: TimbalConfig = {}) {
     // Create the ready promise that will be resolved when auth is synced
@@ -305,6 +306,7 @@ export class Timbal {
   /**
    * Get the current user's session
    * Returns cached data if available, otherwise fetches from GET /me
+   * Deduplicates concurrent requests to prevent multiple API calls
    *
    * @param forceRefresh - If true, fetches fresh data even if cached
    *
@@ -318,11 +320,21 @@ export class Timbal {
     if (this._session && !forceRefresh) {
       return this._session;
     }
-    const response = await this.request<{ session: TimbalSession }>("/me", {
+
+    // Deduplicate concurrent requests
+    if (this._sessionPromise && !forceRefresh) {
+      return this._sessionPromise;
+    }
+
+    this._sessionPromise = this.request<{ session: TimbalSession }>("/me", {
       method: "GET",
+    }).then((response) => {
+      this._session = response.data.session;
+      this._sessionPromise = null;
+      return this._session;
     });
-    this._session = response.data.session;
-    return this._session;
+
+    return this._sessionPromise;
   }
 
   /**
