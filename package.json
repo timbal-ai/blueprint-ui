@@ -1,8 +1,16 @@
 {
-  "name": "blueprint",
+  "name": "@timbal-ai/blueprint-ui",
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "description": "Blueprint UI template for building AI applications with React, Vite, and the Timbal SDK",
+  "author": "Timbal <team@timbal.ai>",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/timbal-ai/blueprint-ui"
+  },
+  "homepage": "https://timbal.ai",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
