@@ -72,7 +72,6 @@ const AuthCard = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
-  const [termsAccepted, setTermsAccepted] = useState(true);
   const lastProvider = useRef(localStorage.getItem(LAST_PROVIDER_KEY));
 
   const urlError = searchParams.get("error");
@@ -113,11 +112,11 @@ const AuthCard = () => {
     <div className="auth-card w-full max-w-[400px] bg-black border border-zinc-800 rounded-xl p-10 flex flex-col gap-8 shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_20px_40px_-12px_rgba(0,0,0,1)]">
       {/* Header */}
       <div>
-        <h1 className="text-[1.75rem] font-normal tracking-tight text-zinc-200 mb-2">
+        <h1 className="text-[1.75rem] font-normal tracking-[-0.01em] text-[#ededed] mb-2">
           Get started
         </h1>
-        <p className="text-[0.95rem] text-zinc-400 leading-relaxed">
-          Login or create account via social or Email
+        <p className="text-[0.95rem] text-zinc-300 leading-[1.5]">
+          Login or create account via OAuth or Email
         </p>
       </div>
 
@@ -146,7 +145,7 @@ const AuthCard = () => {
 
         {/* Divider */}
         {showDivider && (
-          <div className="relative text-center text-xs text-zinc-600 my-2">
+          <div className="relative text-center text-xs text-zinc-600 my-5">
             <div className="absolute top-1/2 left-0 w-full h-px bg-zinc-800" />
             <span className="relative bg-black px-3 uppercase font-semibold">
               or continue with
@@ -163,7 +162,7 @@ const AuthCard = () => {
               </div>
             ) : (
               <form onSubmit={handleMagicLink} className="flex flex-col gap-2">
-                <label htmlFor="email" className="text-xs font-medium text-zinc-400">
+                <label htmlFor="email" className="text-[0.8rem] font-medium text-zinc-300">
                   Email
                 </label>
                 <input
@@ -192,35 +191,26 @@ const AuthCard = () => {
         )}
 
         {/* Terms */}
-        <div className="flex items-center justify-center gap-2 mt-1">
-          <input
-            type="checkbox"
-            id="terms-checkbox"
-            checked={termsAccepted}
-            onChange={(e) => setTermsAccepted(e.target.checked)}
-            className="terms-checkbox"
-          />
-          <label htmlFor="terms-checkbox" className="text-[0.7rem] text-zinc-500 leading-snug">
-            I accept the{" "}
-            <a
-              href="https://app.timbal.ai/legal/terms-use/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-zinc-500 no-underline border-b border-zinc-700 transition-colors hover:text-zinc-400 hover:border-zinc-600"
-            >
-              Terms
-            </a>{" "}
-            and{" "}
-            <a
-              href="https://app.timbal.ai/legal/privacy-policy/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-zinc-500 no-underline border-b border-zinc-700 transition-colors hover:text-zinc-400 hover:border-zinc-600"
-            >
-              Privacy Policy
-            </a>
-          </label>
-        </div>
+        <p className="text-[0.7rem] text-zinc-500 leading-snug text-center mt-1">
+          By using Timbal, you accept the{" "}
+          <a
+            href="https://app.timbal.ai/legal/terms-use/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-zinc-500 no-underline border-b border-zinc-700 transition-colors hover:text-zinc-400 hover:border-zinc-600"
+          >
+            Terms
+          </a>{" "}
+          and{" "}
+          <a
+            href="https://app.timbal.ai/legal/privacy-policy/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-zinc-500 no-underline border-b border-zinc-700 transition-colors hover:text-zinc-400 hover:border-zinc-600"
+          >
+            Privacy Policy
+          </a>
+        </p>
       </div>
     </div>
   );
