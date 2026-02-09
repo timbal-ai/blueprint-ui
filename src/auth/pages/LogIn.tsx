@@ -1,146 +1,69 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { useTheme } from 'next-themes'
-import { useAuth, type OAuthProvider } from '../provider'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Separator } from '@/components/ui/separator'
-import { Loader2 } from 'lucide-react'
-import { OAuthButtons } from '../components/OAuthButtons'
+import { useEffect } from "react";
+import AuthCard from "../components/AuthCard";
+import DotCanvas from "../components/DotCanvas";
+import LogoSlider from "../components/LogoSlider";
+import TimbalSvgLogo from "../components/TimbalSvgLogo";
 
-const LogIn = () => {
-    const { theme, systemTheme } = useTheme()
-    const navigate = useNavigate()
-    const auth = useAuth()
-    const [email, setEmail] = useState('')
-    const [password, setPassword] = useState('')
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
+const DOCS_ICON = (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth="1.5"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
+    />
+  </svg>
+);
 
-    const currentTheme = theme === 'system' ? systemTheme : theme
-    const logo = currentTheme === 'dark' ? '/timbal_w.svg' : '/timbal_b.svg'
+export default function LogInPage() {
+  useEffect(() => {
+    const ref = new URLSearchParams(window.location.search).get("inviteRef");
+    if (ref) sessionStorage.setItem("inviteRef", ref);
+  }, []);
 
-    const handleEmailLogin = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setError(null)
-        setLoading(true)
+  return (
+    <div className="flex flex-col lg:flex-row h-screen w-screen overflow-y-auto lg:overflow-hidden antialiased bg-[#0a0a0a] text-zinc-100">
+      {/* Left column */}
+      <div className="relative z-20 flex flex-col items-center justify-start pt-12 lg:justify-center lg:pt-0 w-full min-h-screen lg:w-1/2 lg:h-full lg:min-h-0 px-4 pb-8 lg:p-8 bg-[#0a0a0a] lg:border-r lg:border-[#121212]">
+        {/* Animated green border line */}
+        <div
+          className="hidden lg:block absolute top-0 -right-px w-px h-full z-50 animate-border-flow"
+          style={{
+            background:
+              "linear-gradient(to top, rgba(34,197,94,0) 0%, rgba(34,197,94,0) 40%, rgba(34,197,94,0.8) 50%, rgba(34,197,94,0) 60%, rgba(34,197,94,0) 100%)",
+            backgroundSize: "100% 300%",
+          }}
+        />
 
-        try {
-            const { error } = await auth.signInWithPassword(email, password)
-
-            if (error) throw error
-            navigate('/')
-        } catch (err: any) {
-            setError(err.message || 'Invalid email or password')
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    const handleOAuthLogin = async (provider: OAuthProvider) => {
-        setError(null)
-        setLoading(true)
-
-        try {
-            const { error } = await auth.signInWithOAuth(provider)
-
-            if (error) throw error
-        } catch (err: any) {
-            setError(err.message || 'OAuth authentication failed')
-            setLoading(false)
-        }
-    }
-
-    return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
-            <div className="flex justify-center mb-4 mr-1">
-                <img src={logo} alt="Timbal" className="h-5 w-auto" />
-            </div>
-            <Card className="w-full max-w-sm">
-                <CardHeader className="space-y-4">
-
-                    <div className="space-y-2 text-center">
-                        <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
-                        <CardDescription>Sign in to your account to continue</CardDescription>
-                    </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    {error && (
-                        <Alert variant="destructive">
-                            <AlertDescription>{error}</AlertDescription>
-                        </Alert>
-                    )}
-
-                    {auth.config.methods.emailPassword && (
-                    <form onSubmit={handleEmailLogin} className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                placeholder="name@example.com"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                required
-                                disabled={loading}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="password">Password</Label>
-                            <Input
-                                id="password"
-                                type="password"
-                                placeholder={"********"}
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                                disabled={loading}
-                            />
-                        </div>
-                        <div className="flex justify-end">
-                            <Link
-                                to="/auth/forgot-password"
-                                className="text-sm text-primary hover:underline"
-                            >
-                                Forgot password?
-                            </Link>
-                        </div>
-                        <Button type="submit" className="w-full" disabled={loading}>
-                            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Sign in
-                        </Button>
-                    </form>
-                    )}
-
-                    {auth.config.methods.emailPassword && auth.config.methods.oauth && (
-                    <div className="relative">
-                        <div className="absolute inset-0 flex items-center">
-                            <Separator />
-                        </div>
-                        <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-card px-2 text-muted-foreground">
-                                Or continue with
-                            </span>
-                        </div>
-                    </div>
-                    )}
-
-                    <OAuthButtons onOAuthClick={handleOAuthLogin} loading={loading} />
-                </CardContent>
-                <CardFooter className="flex justify-center">
-                    <p className="text-sm text-muted-foreground">
-                        Don't have an account?{' '}
-                        <Link to="/auth/signup" className="text-primary hover:underline font-medium">
-                            Sign up
-                        </Link>
-                    </p>
-                </CardFooter>
-            </Card>
+        {/* Logo — top-left on desktop, centered on mobile */}
+        <div className="mb-8 lg:mb-0 lg:absolute lg:top-8 lg:left-8 z-30 opacity-90 hover:opacity-100 transition-opacity text-white">
+          <TimbalSvgLogo />
         </div>
-    )
-}
 
-export default LogIn
+        <AuthCard />
+      </div>
+
+      {/* Right column */}
+      <div className="hidden lg:flex relative w-1/2 h-full flex-col items-center justify-center overflow-hidden bg-[#030303]">
+        {/* Docs button */}
+        <a
+          href="https://docs.timbal.ai/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="absolute top-8 right-8 z-30 flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium rounded-md no-underline text-zinc-500 bg-zinc-900 border border-zinc-800 transition-all hover:text-zinc-300 hover:bg-[#1f1f23] hover:border-zinc-700 [&_svg]:w-3.5 [&_svg]:h-3.5 [&_svg]:opacity-70"
+        >
+          {DOCS_ICON}
+          Documentation
+        </a>
+
+        <DotCanvas />
+        <LogoSlider />
+      </div>
+    </div>
+  );
+}

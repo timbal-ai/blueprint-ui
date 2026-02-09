@@ -1,19 +1,14 @@
 import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from "@/components/ui/button";
-import { authClient, isAuthEnabled } from "@/auth/provider";
+import { isAuthEnabled, useSession } from "@/auth/provider";
 import { useTheme } from "next-themes";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Book, ChevronRight, Code } from "lucide-react";
 
 const Home = () => {
   const { theme, systemTheme } = useTheme();
+  const { logout } = useSession();
   const currentTheme = theme === "system" ? systemTheme : theme;
-
-  const handleSignOut = async () => {
-    if (authClient) {
-      await authClient.auth.signOut();
-    }
-  };
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
@@ -26,7 +21,7 @@ const Home = () => {
         <div className="flex items-center gap-2">
           <ModeToggle />
           {isAuthEnabled && (
-            <Button variant="destructive" onClick={handleSignOut}>
+            <Button variant="destructive" onClick={logout}>
               Logout
             </Button>
           )}

@@ -26,21 +26,18 @@ function App() {
               index
               element={
                 <AuthGuard requireAuth>
-                  {" "}
-                  <Home />{" "}
+                  <Home />
                 </AuthGuard>
               }
             />
-            <Route path="*" element={<NotFound />} />
-            {/* AUTH routes are only shown if authentication is enabled */}
+            {/* AUTH routes: callback is always accessible, login only when not authenticated */}
             <Route
               path="/auth/*"
               element={
-                <AuthGuard>
-                  {isAuthEnabled ? <AuthRoutes /> : <Navigate to="/" />}
-                </AuthGuard>
+                isAuthEnabled ? <AuthRoutes /> : <Navigate to="/" />
               }
             />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
       </SessionProvider>

@@ -1,54 +1,48 @@
-/* eslint-disable react-refresh/only-export-components, @typescript-eslint/no-explicit-any */
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { createClient, Session } from "@supabase/supabase-js";
+/* eslint-disable react-refresh/only-export-components */
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import {
   authConfig,
   isAuthEnabled,
   hasAnyAuthMethod,
   isOAuthProviderEnabled,
   type OAuthProvider,
-  type AuthProviderType,
 } from "@/auth/config";
+import {
+  getAccessToken,
+  getRefreshToken,
+  setTokens,
+  clearTokens,
+  validateUser,
+  refreshAccessToken,
+  syncTimbalToken,
+  requestMagicLink as requestMagicLinkApi,
+  getOAuthUrl,
+  AccessDeniedError,
+  type TimbalUser,
+} from "@/auth/tokens";
 
-// Re-export types and helpers for backwards compatibility
-export type { OAuthProvider, AuthProviderType };
+export type { OAuthProvider };
 export { authConfig, isAuthEnabled, hasAnyAuthMethod, isOAuthProviderEnabled };
-
-// ============================================
-// Auth Provider Client
-// ============================================
-
-/**
- * Initialize the auth client based on provider type
- * Currently supports Supabase, but can be extended for other providers
- */
-const initAuthClient = () => {
-  if (!isAuthEnabled) return null;
-
-  switch (authConfig.provider) {
-    case "supabase":
-      return createClient(authConfig.url!, authConfig.key!);
-
-    case "custom":
-      // TODO: Implement custom auth provider
-      // return createCustomAuthClient(authConfig)
-      throw new Error("Custom auth provider not yet implemented");
-
-    default:
-      throw new Error(`Unknown auth provider: ${authConfig.provider}`);
-  }
-};
-
-export const authClient = initAuthClient();
 
 // ============================================
 // Session Context
 // ============================================
 
 interface SessionContextType {
-  session: Session | null;
+  user: TimbalUser | null;
   loading: boolean;
   isAuthenticated: boolean;
+  setUserFromCallback: (
+    accessToken: string,
+    refreshToken: string,
+  ) => Promise<void>;
+  logout: () => void;
 }
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
@@ -61,68 +55,97 @@ export const useSession = () => {
   return context;
 };
 
-interface SessionProviderProps {
-  children: React.ReactNode;
-}
+// ============================================
+// Session Provider
+// ============================================
 
-export const SessionProvider: React.FC<SessionProviderProps> = ({
+export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<TimbalUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // If auth is disabled, set empty session and mark as not loading
     if (!isAuthEnabled) {
-      setSession(null);
       setLoading(false);
-      // Mark timbal as ready even without auth
-      import("@/timbal/client").then(({ timbal }) => {
-        timbal.updateSessionToken(undefined);
-      });
+      syncTimbalToken(undefined);
       return;
     }
 
-    // authClient is null when auth is disabled (checked above)
-    if (!authClient) {
-      setSession(null);
-      setLoading(false);
-      // Mark timbal as ready even without auth
-      import("@/timbal/client").then(({ timbal }) => {
-        timbal.updateSessionToken(undefined);
-      });
-      return;
-    }
+    const restoreSession = async () => {
+      try {
+        // Try existing access token first
+        const token = getAccessToken();
+        if (token) {
+          const u = await validateUser(
+            token,
+            authConfig.orgId,
+            authConfig.projectId,
+          );
+          setUser(u);
+          syncTimbalToken(token);
+          setLoading(false);
+          return;
+        }
 
-    // Get initial session
-    authClient.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      // Sync token to Timbal client (lazy import to avoid circular dependency)
-      import("@/timbal/client").then(({ timbal }) => {
-        timbal.updateSessionToken(session?.access_token);
-      });
-      setLoading(false);
-    });
+        // Try refreshing from stored refresh token
+        if (getRefreshToken()) {
+          const ok = await refreshAccessToken();
+          if (ok) {
+            const newToken = getAccessToken()!;
+            const u = await validateUser(
+              newToken,
+              authConfig.orgId,
+              authConfig.projectId,
+            );
+            setUser(u);
+            syncTimbalToken(newToken);
+            setLoading(false);
+            return;
+          }
+        }
+      } catch {
+        clearTokens();
+      }
 
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = authClient.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      // Sync token to Timbal client (lazy import to avoid circular dependency)
-      import("@/timbal/client").then(({ timbal }) => {
-        timbal.updateSessionToken(session?.access_token);
-      });
+      syncTimbalToken(undefined);
       setLoading(false);
-    });
+    };
 
-    return () => subscription.unsubscribe();
+    restoreSession();
   }, []);
 
-  const isAuthenticated = !!session?.access_token;
+  const setUserFromCallback = useCallback(
+    async (accessToken: string, refreshToken: string) => {
+      setTokens(accessToken, refreshToken);
+      // Throws AccessDeniedError if user lacks project access
+      const u = await validateUser(
+        accessToken,
+        authConfig.orgId,
+        authConfig.projectId,
+      );
+      setUser(u);
+      syncTimbalToken(accessToken);
+    },
+    [],
+  );
+
+  const logout = useCallback(() => {
+    clearTokens();
+    setUser(null);
+    syncTimbalToken(undefined);
+  }, []);
 
   return (
-    <SessionContext.Provider value={{ session, loading, isAuthenticated }}>
+    <SessionContext.Provider
+      value={{
+        user,
+        loading,
+        isAuthenticated: !!user,
+        setUserFromCallback,
+        logout,
+      }}
+    >
       {children}
     </SessionContext.Provider>
   );
@@ -132,89 +155,15 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
 // Auth Actions Hook
 // ============================================
 
-export const useAuth = () => {
-  const signInWithPassword = async (email: string, password: string) => {
-    if (!authClient) {
-      throw new Error("Auth is not enabled");
-    }
-    if (!authConfig.methods.emailPassword) {
-      throw new Error("Email/password authentication is disabled");
-    }
-    return authClient.auth.signInWithPassword({ email, password });
-  };
+export const useAuth = () => ({
+  loginWithOAuth: (provider: OAuthProvider) => {
+    window.location.href = getOAuthUrl(provider);
+  },
+  sendMagicLink: (email: string) => requestMagicLinkApi(email),
+  isAuthEnabled,
+  config: authConfig,
+  isOAuthProviderEnabled,
+});
 
-  const signInWithOAuth = async (provider: OAuthProvider) => {
-    if (!authClient) {
-      throw new Error("Auth is not enabled");
-    }
-    if (!authConfig.methods.oauth) {
-      throw new Error("OAuth authentication is disabled");
-    }
-    if (!isOAuthProviderEnabled(provider)) {
-      throw new Error(`OAuth provider '${provider}' is not enabled`);
-    }
-    return authClient.auth.signInWithOAuth({
-      provider: provider as any,
-      options: {
-        redirectTo: window.location.origin,
-      },
-    });
-  };
-
-  const signUp = async (email: string, password: string) => {
-    if (!authClient) {
-      throw new Error("Auth is not enabled");
-    }
-    if (!authConfig.methods.emailPassword) {
-      throw new Error("Email/password authentication is disabled");
-    }
-    return authClient.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: window.location.origin,
-      },
-    });
-  };
-
-  const resetPasswordForEmail = async (email: string) => {
-    if (!authClient) {
-      throw new Error("Auth is not enabled");
-    }
-    if (!authConfig.methods.emailPassword) {
-      throw new Error("Email/password authentication is disabled");
-    }
-    return authClient.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/reset-password`,
-    });
-  };
-
-  const updatePassword = async (password: string) => {
-    if (!authClient) {
-      throw new Error("Auth is not enabled");
-    }
-    if (!authConfig.methods.emailPassword) {
-      throw new Error("Email/password authentication is disabled");
-    }
-    return authClient.auth.updateUser({ password });
-  };
-
-  const signOut = async () => {
-    if (!authClient) {
-      throw new Error("Auth is not enabled");
-    }
-    return authClient.auth.signOut();
-  };
-
-  return {
-    signInWithPassword,
-    signInWithOAuth,
-    signUp,
-    resetPasswordForEmail,
-    updatePassword,
-    signOut,
-    isAuthEnabled,
-    config: authConfig,
-    isOAuthProviderEnabled,
-  };
-};
+// Re-export for consumers that need to check error types
+export { AccessDeniedError };

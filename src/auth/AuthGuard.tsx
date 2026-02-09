@@ -14,12 +14,10 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
 }) => {
   const { isAuthenticated, loading } = useSession();
 
-  // If auth is globally disabled, just render children
   if (!isAuthEnabled) {
     return children;
   }
 
-  // Show loading spinner while checking auth state
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -28,16 +26,13 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
     );
   }
 
-  // If route requires auth but user is not logged in, redirect to login
   if (requireAuth && !isAuthenticated) {
     return <Navigate to="/auth/login" replace />;
   }
 
-  // If route does not require auth but user is logged in, redirect to home
   if (!requireAuth && isAuthenticated) {
     return <Navigate to="/" replace />;
   }
 
-  // Otherwise, show children
   return children;
 };

@@ -111,6 +111,96 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* Login page animations */
+@keyframes border-flow-up {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 0% 100%; }
+}
+
+@keyframes scroll-logos {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-border-flow {
+  animation: border-flow-up 4s ease-in-out infinite;
+}
+
+.animate-slide {
+  animation: scroll-logos 20s linear infinite;
+}
+
+/* Logo slider fade edges */
+.logo-slider-container::before,
+.logo-slider-container::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 100px;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.logo-slider-container::before {
+  left: 0;
+  background: linear-gradient(to right, #030303 0%, transparent 100%);
+}
+
+.logo-slider-container::after {
+  right: 0;
+  background: linear-gradient(to left, #030303 0%, transparent 100%);
+}
+
+/* Terms checkbox */
+.terms-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 13px;
+  height: 13px;
+  min-width: 13px;
+  min-height: 13px;
+  border: 1px solid #3f3f46;
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.terms-checkbox:hover {
+  border-color: #52525b;
+}
+
+.terms-checkbox:checked {
+  background: #166534;
+  border-color: #166534;
+}
+
+.terms-checkbox:checked::after {
+  content: "";
+  position: absolute;
+  left: 51%;
+  top: 45%;
+  width: 3px;
+  height: 6px;
+  border: solid #4ade80;
+  border-width: 0 1.5px 1.5px 0;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+/* Auth card mobile override */
+@media (max-width: 900px) {
+  .auth-card {
+    max-width: 100% !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 1.5rem 0 !important;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
