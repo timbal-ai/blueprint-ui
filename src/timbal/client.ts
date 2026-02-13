@@ -92,7 +92,7 @@ export class Timbal {
     if (this.config.apiKey) {
       headers.set("Authorization", `Bearer ${this.config.apiKey}`);
     } else if (this.config.sessionToken) {
-      headers.set("x-auth-token", this.config.sessionToken);
+      headers.set("Authorization", `Bearer ${this.config.sessionToken}`);
     }
 
     if (options.headers) {

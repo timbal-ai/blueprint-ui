@@ -167,7 +167,7 @@ export const checkProjectAccess = async (
 
   const res = await fetch(
     `${AUTH_API_BASE}/orgs/${orgId}/projects/${projectId}`,
-    { headers: { Authorization: `Bearer ${token}` } },
+    { method: "HEAD", headers: { Authorization: `Bearer ${token}` } },
   );
 
   if (res.status === 403 || res.status === 404) {
@@ -182,17 +182,36 @@ export const checkProjectAccess = async (
 /**
  * Full validation: authenticate + authorize.
  * Returns user object or throws.
+ * Deduplicates concurrent calls with the same token.
  */
+let _validatePromise: Promise<TimbalUser> | null = null;
+let _validateToken: string | null = null;
+
 export const validateUser = async (
   token: string,
   orgId?: string,
   projectId?: string,
 ): Promise<TimbalUser> => {
-  const user = await fetchCurrentUser(token);
-  if (!user) throw new Error("Invalid token");
+  // Return existing promise if same token is already being validated
+  if (_validatePromise && _validateToken === token) {
+    return _validatePromise;
+  }
 
-  await checkProjectAccess(token, orgId, projectId);
-  return user;
+  _validateToken = token;
+  _validatePromise = (async () => {
+    try {
+      const user = await fetchCurrentUser(token);
+      if (!user) throw new Error("Invalid token");
+
+      await checkProjectAccess(token, orgId, projectId);
+      return user;
+    } finally {
+      _validatePromise = null;
+      _validateToken = null;
+    }
+  })();
+
+  return _validatePromise;
 };
 
 export const requestMagicLink = async (email: string): Promise<void> => {

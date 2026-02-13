@@ -72,6 +72,8 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({
       return;
     }
 
+    let ignore = false;
+
     const restoreSession = async () => {
       try {
         // Try existing access token first
@@ -82,6 +84,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({
             authConfig.orgId,
             authConfig.projectId,
           );
+          if (ignore) return;
           setUser(u);
           syncTimbalToken(token);
           setLoading(false);
@@ -91,6 +94,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({
         // Try refreshing from stored refresh token
         if (getRefreshToken()) {
           const ok = await refreshAccessToken();
+          if (ignore) return;
           if (ok) {
             const newToken = getAccessToken()!;
             const u = await validateUser(
@@ -98,6 +102,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({
               authConfig.orgId,
               authConfig.projectId,
             );
+            if (ignore) return;
             setUser(u);
             syncTimbalToken(newToken);
             setLoading(false);
@@ -105,6 +110,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({
           }
         }
       } catch {
+        if (ignore) return;
         clearTokens();
       }
 
@@ -113,6 +119,10 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({
     };
 
     restoreSession();
+
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   const setUserFromCallback = useCallback(
