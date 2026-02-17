@@ -5,6 +5,7 @@
 export type OAuthProvider = "google" | "github" | "microsoft";
 
 const ALL_OAUTH_PROVIDERS: OAuthProvider[] = ["google", "github", "microsoft"];
+const hasProjectId = !!import.meta.env.VITE_TIMBAL_PROJECT_ID;
 
 export const authConfig = {
   // Timbal IAM: defaults to true (auth tokens are used for SDK)
@@ -26,12 +27,15 @@ export const authConfig = {
 };
 
 /**
- * Auth is enabled when VITE_AUTH_ENABLED is "true" or when any auth method is configured
+ * Auth is disabled when VITE_TIMBAL_PROJECT_ID is empty/unset (local dev).
+ * Otherwise enabled when VITE_AUTH_ENABLED is "true" or any auth method is configured.
  */
+
 export const isAuthEnabled =
-  import.meta.env.VITE_AUTH_ENABLED === "true" ||
-  authConfig.methods.oauth ||
-  authConfig.methods.magicLink;
+  hasProjectId &&
+  (import.meta.env.VITE_AUTH_ENABLED === "true" ||
+    authConfig.methods.oauth ||
+    authConfig.methods.magicLink);
 
 export const hasAnyAuthMethod =
   authConfig.methods.magicLink || authConfig.methods.oauth;
