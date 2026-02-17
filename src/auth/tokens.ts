@@ -1,4 +1,4 @@
-const AUTH_API_BASE = "https://api.timbal.ai";
+const AUTH_API_BASE = import.meta.env.VITE_TIMBAL_BASE_URL;
 const REFRESH_TOKEN_KEY = "timbal_refresh_token";
 
 // ============================================
